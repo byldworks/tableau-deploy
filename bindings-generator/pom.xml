@@ -48,7 +48,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <packageName>com.byldworks.tableau.deploy.api.bindings</packageName>
+                    <packageName>com.byldworks.tableau.deploy.api.rest.bindings</packageName>
                 </configuration>
             </plugin>
         </plugins>

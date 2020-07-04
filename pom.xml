@@ -11,22 +11,41 @@
 
     <modules>
         <module>bindings-generator</module>
+        <module>tableau-interactor</module>
+        <module>tableau-api</module>
     </modules>
 
     <properties>
+        <build.version>1.0-SNAPSHOT</build.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
         <version.jaxb-api>2.3.0</version.jaxb-api>
         <version.jaxb-runtime>2.3.2</version.jaxb-runtime>
         <version.jaxb-xjc>2.3.2</version.jaxb-xjc>
         <version.jaxb2-maven-plugin>2.4</version.jaxb2-maven-plugin>
         <version.jakarta.activation>1.2.1</version.jakarta.activation>
+        <version.log4j>2.13.3</version.log4j>
         <version.maven-compiler-plugin>3.8.1</version.maven-compiler-plugin>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.byldworks</groupId>
+                <artifactId>tableau-api</artifactId>
+                <version>${build.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>${version.log4j}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
+                <version>${version.log4j}</version>
+            </dependency>
             <dependency>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>jaxb2-maven-plugin</artifactId>
