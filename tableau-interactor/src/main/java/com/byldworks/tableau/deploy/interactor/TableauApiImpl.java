@@ -194,6 +194,36 @@ public class TableauApiImpl implements TableauApiService {
 
     }
 
+    @Override
+    public void invokeDeleteWorkbook(TableauCredentialsType credential, String siteId, String projectId, String workbookId) {
+
+        logger.warn("About to delete workbook " + workbookId);
+
+        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks/" + workbookId;
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header(TABLEAU_AUTH_HEADER, credential.getToken())
+                .DELETE()
+                .build();
+        HttpResponse<String> response = null;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        if (response.statusCode() == 204) {
+            logger.info("Successfully deleted workbook");
+        } else {
+            logger.error("Failed to delete workbook");
+        }
+
+    }
+
     private WorkbookType invokePublishWorkbookSimple(TableauCredentialsType credential, String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite) {
 
         String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks";

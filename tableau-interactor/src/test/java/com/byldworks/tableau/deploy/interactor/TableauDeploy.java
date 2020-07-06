@@ -57,6 +57,12 @@ public class TableauDeploy {
 
         WorkbookType publishWorkbook = impl.invokePublishWorkbook(credential, currentSiteId, defaultProject.getId(), "Test", workbookFile, false, true);
 
+        logger.info("Now that we have successfully published a workbook, we're going to delete it.");
+
+        String workbookId = publishWorkbook.getId();
+
+        impl.invokeDeleteWorkbook(credential, currentSiteId, defaultProject.getId(), workbookId);
+
         impl.invokeSignOut(credential);
 
     }
