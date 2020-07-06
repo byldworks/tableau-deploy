@@ -1,9 +1,6 @@
 package com.byldworks.tableau.deploy.interactor;
 
-import com.byldworks.tableau.deploy.api.rest.bindings.ProjectListType;
-import com.byldworks.tableau.deploy.api.rest.bindings.ProjectType;
-import com.byldworks.tableau.deploy.api.rest.bindings.TableauCredentialsType;
-import com.byldworks.tableau.deploy.api.rest.bindings.WorkbookType;
+import com.byldworks.tableau.deploy.api.rest.bindings.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -57,12 +54,14 @@ public class TableauDeploy {
 
         WorkbookType publishWorkbook = impl.invokePublishWorkbook(credential, currentSiteId, defaultProject.getId(), "Test", workbookFile, false, true);
 
+        WorkbookListType workbookListType = impl.invokeQueryWorkbooks(credential, currentSiteId, currentUserId);
+        for (WorkbookType workbook : workbookListType.getWorkbook()) {
+            logger.info("Found workbook: " + workbook.getId() + " | " + workbook.getName());
+        }
+
         logger.info("Now that we have successfully published a workbook, we're going to delete it.");
-
         String workbookId = publishWorkbook.getId();
-
         impl.invokeDeleteWorkbook(credential, currentSiteId, defaultProject.getId(), workbookId);
-
         impl.invokeSignOut(credential);
 
     }
