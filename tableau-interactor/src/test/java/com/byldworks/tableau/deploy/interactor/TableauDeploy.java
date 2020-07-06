@@ -3,9 +3,11 @@ package com.byldworks.tableau.deploy.interactor;
 import com.byldworks.tableau.deploy.api.rest.bindings.ProjectListType;
 import com.byldworks.tableau.deploy.api.rest.bindings.ProjectType;
 import com.byldworks.tableau.deploy.api.rest.bindings.TableauCredentialsType;
+import com.byldworks.tableau.deploy.api.rest.bindings.WorkbookType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
@@ -42,16 +44,18 @@ public class TableauDeploy {
         logger.info("Current SiteID: " + currentSiteId);
         logger.info("Current User: " + currentUserId);
 
-        ProjectType defaultProject;
+        ProjectType defaultProject = null;
         ProjectListType projects = impl.invokeQueryProjects(credential, currentSiteId);
         for (ProjectType project : projects.getProject()) {
             if (project.getName().equals("default") || project.getName().equals("Default")) {
                 defaultProject = project;
                 logger.info(String.format("Default project found: %s", defaultProject.getId()));
-            } else {
-                logger.error("Failed to find Default project.");
             }
         }
+
+        File workbookFile = new File("../tableau-files/packaged-workbooks/demo.twbx");
+
+        WorkbookType publishWorkbook = impl.invokePublishWorkbook(credential, currentSiteId, defaultProject.getId(), "Test", workbookFile, false, true);
 
         impl.invokeSignOut(credential);
 

@@ -14,11 +14,15 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import java.io.*;
+import java.math.BigInteger;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Properties;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 
 /**
  * Tableau REST API Implementation of TableauApiService interface.
@@ -98,7 +102,7 @@ public class TableauApiImpl implements TableauApiService {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header(TABLEAU_AUTH_HEADER, credential.getToken())
-                .POST(HttpRequest.BodyPublishers.ofString(""))
+                .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
         HttpResponse<String> response = null;
         try {
@@ -177,6 +181,44 @@ public class TableauApiImpl implements TableauApiService {
 
     }
 
+    @Override
+    public WorkbookType invokePublishWorkbook(TableauCredentialsType credential, String siteId, String projectId, String workbookName, File workbookFile, boolean chunkedPublish, boolean overwrite) {
+
+        logger.info("Publishing workbook " + workbookName + " on site " + siteId);
+
+        if (chunkedPublish) {
+            return invokePublishWorkbookChunked(credential, siteId, projectId, workbookName, workbookFile, overwrite);
+        } else {
+            return invokePublishWorkbookSimple(credential, siteId, projectId, workbookName, workbookFile, overwrite);
+        }
+
+    }
+
+    private WorkbookType invokePublishWorkbookSimple(TableauCredentialsType credential, String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite) {
+
+        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks";
+
+        TsRequest payload = createPayloadToPublishWorkbook(workbookName, projectId);
+
+        TsResponse response = postMultiPart(url, credential.getToken(), payload, workbookFile);
+
+        if (response.getWorkbook() != null) {
+            logger.info("Successfully published workbook");
+            return response.getWorkbook();
+        } else {
+            logger.error("Failed to publish workbook.");
+        }
+
+        return null;
+
+    }
+
+    private WorkbookType invokePublishWorkbookChunked(TableauCredentialsType credential, String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite) {
+
+        return null;
+
+    }
+
     private TsRequest createPayloadForSignin(String username, String password, String contentUrl) {
 
         TsRequest requestPayload = m_objectFactory.createTsRequest();
@@ -191,6 +233,21 @@ public class TableauApiImpl implements TableauApiService {
         signInCredentials.setPassword(password);
 
         requestPayload.setCredentials(signInCredentials);
+
+        return requestPayload;
+
+    }
+
+    private TsRequest createPayloadToPublishWorkbook(String workbookName, String projectId) {
+
+        TsRequest requestPayload = m_objectFactory.createTsRequest();
+        WorkbookType workbook = m_objectFactory.createWorkbookType();
+        ProjectType project = m_objectFactory.createProjectType();
+
+        project.setId(projectId);
+        workbook.setName(workbookName);
+        workbook.setProject(project);
+        requestPayload.setWorkbook(workbook);
 
         return requestPayload;
 
@@ -267,6 +324,65 @@ public class TableauApiImpl implements TableauApiService {
 
     }
 
+    /**
+     * Creates a multi-part POST request using the specified URL and a request payload
+     *
+     * @param url
+     * @param authToken
+     * @param requestPayload
+     * @param workbookFile
+     * @return
+     */
+    private TsResponse postMultiPart(String url, String authToken, TsRequest requestPayload, File workbookFile) {
+
+        StringWriter writer = new StringWriter();
+
+        if (requestPayload != null) {
+            try {
+                s_jaxbMarshaller.marshal(requestPayload, writer);
+            } catch (JAXBException ex) {
+                logger.error("There was a problem marshalling the payload: " + ex);
+            }
+        }
+
+        String payload = writer.toString();
+        logger.debug("Input payload: \n" + payload);
+
+        Map<Object, Object> data = new LinkedHashMap<>();
+        data.put("request_payload", payload);
+        Path workbookPath = workbookFile.toPath();
+        data.put("tableau_workbook", workbookPath);
+        String boundary = new BigInteger(256, new Random()).toString();
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = null;
+        try {
+            request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header(TABLEAU_AUTH_HEADER, authToken)
+                    .header("Content-Type", "multipart/mixed;boundary=" + boundary)
+                    .POST(ofMimeMultipartData(data, boundary))
+                    .build();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        HttpResponse<String> response = null;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        String responseXML = response != null ? response.body() : null;
+
+        logger.debug("Response: \n" + responseXML);
+
+        return unmarshalResponse(responseXML);
+
+    }
+
     private TsResponse unmarshalResponse(String responseXML) {
 
         TsResponse tsResponse = m_objectFactory.createTsResponse();
@@ -281,6 +397,31 @@ public class TableauApiImpl implements TableauApiService {
 
         return tsResponse;
 
+    }
+
+    public static HttpRequest.BodyPublisher ofMimeMultipartData(Map<Object, Object> data,
+                                                                String boundary) throws IOException {
+        var byteArrays = new ArrayList<byte[]>();
+        byte[] separator = ("--" + boundary + "\r\nContent-Disposition: form-data; name=")
+                .getBytes(StandardCharsets.UTF_8);
+        for (Map.Entry<Object, Object> entry : data.entrySet()) {
+            byteArrays.add(separator);
+
+            if (entry.getValue() instanceof Path) {
+                var path = (Path) entry.getValue();
+                String mimeType = Files.probeContentType(path);
+                byteArrays.add(("\"" + entry.getKey() + "\"; filename=\"" + path.getFileName()
+                        + "\"\r\nContent-Type: " + mimeType + "\r\n\r\n").getBytes(StandardCharsets.UTF_8));
+                byteArrays.add(Files.readAllBytes(path));
+                byteArrays.add("\r\n".getBytes(StandardCharsets.UTF_8));
+            }
+            else {
+                byteArrays.add(("\"" + entry.getKey() + "\"\r\n\r\n" + entry.getValue() + "\r\n")
+                        .getBytes(StandardCharsets.UTF_8));
+            }
+        }
+        byteArrays.add(("--" + boundary + "--").getBytes(StandardCharsets.UTF_8));
+        return HttpRequest.BodyPublishers.ofByteArrays(byteArrays);
     }
 
 }

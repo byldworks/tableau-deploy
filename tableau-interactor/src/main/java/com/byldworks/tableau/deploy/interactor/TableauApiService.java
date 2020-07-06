@@ -1,13 +1,12 @@
 package com.byldworks.tableau.deploy.interactor;
 
-import com.byldworks.tableau.deploy.api.rest.bindings.ProjectListType;
-import com.byldworks.tableau.deploy.api.rest.bindings.SiteListType;
-import com.byldworks.tableau.deploy.api.rest.bindings.TableauCredentialsType;
-import com.byldworks.tableau.deploy.api.rest.bindings.WorkbookListType;
+import com.byldworks.tableau.deploy.api.rest.bindings.*;
+
+import java.io.File;
 
 /**
  * Interface used by Tableau Interactor.
- *
+ * <p>
  * Created by suraj on 04/07/2020
  */
 public interface TableauApiService {
@@ -55,5 +54,19 @@ public interface TableauApiService {
      * @return
      */
     public WorkbookListType invokeQueryWorkbooks(TableauCredentialsType credential, String siteId, String userId);
+
+    /**
+     * Method to publish a workbook to the target site.
+     *
+     * @param credential
+     * @param siteId
+     * @param projectId
+     * @param workbookName
+     * @param workbookFile
+     * @param chunkedPublish
+     * @param overwrite
+     * @return
+     */
+    public WorkbookType invokePublishWorkbook(TableauCredentialsType credential, String siteId, String projectId, String workbookName, File workbookFile, boolean chunkedPublish, boolean overwrite);
 
 }
