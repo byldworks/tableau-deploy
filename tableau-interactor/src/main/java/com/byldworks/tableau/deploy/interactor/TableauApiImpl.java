@@ -224,6 +224,38 @@ public class TableauApiImpl implements TableauApiService {
 
     }
 
+    @Override
+    public File invokeDownloadWorkbook(TableauCredentialsType credential, String siteId, String workbookId, String targetFileName) {
+
+        logger.info("About to download workbook: " + workbookId);
+
+        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks/" + workbookId + "/content";
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header(TABLEAU_AUTH_HEADER, credential.getToken())
+                .build();
+        HttpResponse<Path> responseOfFile = null;
+        try {
+            responseOfFile = client.send(request, HttpResponse.BodyHandlers.ofFile(Path.of(targetFileName)));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        if (responseOfFile.statusCode() == 200) {
+            logger.info("Successfully downloaded workbook to " + responseOfFile.body().getFileName());
+            return responseOfFile.body().toFile();
+        } else {
+            logger.error("Failed to download workbook");
+        }
+
+        return null;
+
+    }
+
     private WorkbookType invokePublishWorkbookSimple(TableauCredentialsType credential, String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite) {
 
         String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks";

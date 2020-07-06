@@ -58,9 +58,13 @@ public class TableauDeploy {
         for (WorkbookType workbook : workbookListType.getWorkbook()) {
             logger.info("Found workbook: " + workbook.getId() + " | " + workbook.getName());
         }
+        String workbookId = publishWorkbook.getId();
+
+        logger.info("About to download the workbook we just published.");
+
+        File downloadedWorkbook = impl.invokeDownloadWorkbook(credential, currentSiteId, workbookId, "../tableau-files/packaged-workbooks/Test_Download.twbx");
 
         logger.info("Now that we have successfully published a workbook, we're going to delete it.");
-        String workbookId = publishWorkbook.getId();
         impl.invokeDeleteWorkbook(credential, currentSiteId, defaultProject.getId(), workbookId);
         impl.invokeSignOut(credential);
 

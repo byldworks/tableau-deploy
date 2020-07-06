@@ -79,4 +79,15 @@ public interface TableauApiService {
      */
     public void invokeDeleteWorkbook(TableauCredentialsType credential, String siteId, String projectId, String workbookId);
 
+    /**
+     * Method to download a Tableau workbook from Tableau Server.
+     *
+     * @param credential
+     * @param siteId
+     * @param workbookId
+     * @param targetFileName
+     * @return
+     */
+    public File invokeDownloadWorkbook(TableauCredentialsType credential, String siteId, String workbookId, String targetFileName);
+
 }
