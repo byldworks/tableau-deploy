@@ -22,7 +22,7 @@ import java.util.Properties;
 
 /**
  * Tableau REST API Implementation of TableauApiService interface.
- *
+ * <p>
  * Created by suraj on 04/07/2020
  */
 public class TableauApiImpl implements TableauApiService {
@@ -72,7 +72,7 @@ public class TableauApiImpl implements TableauApiService {
 
         logger.info("Signing in to Tableau Server");
 
-        String url = m_properties.getProperty("server.host") + "api/3.8/" + "auth/signin";
+        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "auth/signin";
 
         TsRequest payload = createPayloadForSignin(username, password, contentUrl);
 
@@ -81,6 +81,96 @@ public class TableauApiImpl implements TableauApiService {
         if (response.getCredentials() != null) {
             logger.info("Sign in successful");
             return response.getCredentials();
+        }
+
+        return null;
+
+    }
+
+    @Override
+    public void invokeSignOut(TableauCredentialsType credential) {
+
+        logger.info("Signing out of Tableau Server");
+
+        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "auth/signout";
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header(TABLEAU_AUTH_HEADER, credential.getToken())
+                .POST(HttpRequest.BodyPublishers.ofString(""))
+                .build();
+        HttpResponse<String> response = null;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        if (response.statusCode() == 204) {
+            logger.info("Successfully signed out of Tableau Server");
+        } else {
+            logger.error("Failed to sign out of Tableau Server");
+        }
+
+    }
+
+    @Override
+    public SiteListType invokeQuerySites(TableauCredentialsType credential) {
+
+        logger.info("Querying sites on Tableau Server");
+
+        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites";
+
+        TsResponse response = get(url, credential.getToken());
+
+        if (response.getSites() != null) {
+            logger.info("Succesfully queried sites.");
+            return response.getSites();
+        } else {
+            logger.error("There was a problem querying sites.");
+        }
+
+        return null;
+
+    }
+
+    @Override
+    public ProjectListType invokeQueryProjects(TableauCredentialsType credential, String siteId) {
+
+        logger.info("Querying projects on site " + siteId);
+
+        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/projects";
+
+        TsResponse response = get(url,credential.getToken());
+
+        if (response.getProjects() != null) {
+            logger.info("Succesfully queried projects.");
+            return response.getProjects();
+        } else {
+            logger.error("There was a problem querying projects.");
+        }
+
+        return null;
+
+    }
+
+    @Override
+    public WorkbookListType invokeQueryWorkbooks(TableauCredentialsType credential, String siteId, String userId) {
+
+        logger.info("Querying workbooks on site " + siteId);
+
+        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/users/" + userId + "/workbooks";
+
+        TsResponse response = get(url,credential.getToken());
+
+        if (response.getWorkbooks() != null) {
+            logger.info("Succesfully queried workbooks.");
+            return response.getWorkbooks();
+        } else {
+            logger.error("There was a problem querying workbooks.");
         }
 
         return null;
@@ -103,6 +193,30 @@ public class TableauApiImpl implements TableauApiService {
         requestPayload.setCredentials(signInCredentials);
 
         return requestPayload;
+
+    }
+
+    private TsResponse get(String url, String authToken) {
+
+        HttpClient client = HttpClient.newHttpClient();
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header(TABLEAU_AUTH_HEADER, authToken)
+                .build();
+        HttpResponse<String> response = null;
+        try {
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        String responseXML = response != null ? response.body() : null;
+
+        logger.debug("Response: \n" + responseXML);
+
+        return unmarshalResponse(responseXML);
 
     }
 
@@ -169,33 +283,4 @@ public class TableauApiImpl implements TableauApiService {
 
     }
 
-    @Override
-    public void invokeSignOut(TableauCredentialsType credential) {
-
-        logger.info("Signing out of Tableau Server");
-
-        String url = m_properties.getProperty("server.host") + "api/3.8/" + "auth/signout";
-
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header(TABLEAU_AUTH_HEADER, credential.getToken())
-                .POST(HttpRequest.BodyPublishers.ofString(""))
-                .build();
-        HttpResponse<String> response = null;
-        try {
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        if (response.statusCode() == 204) {
-            logger.info("Successfully signed out of Tableau Server");
-        } else {
-            logger.error("Failed to sign out of Tableau Server");
-        }
-
-    }
 }

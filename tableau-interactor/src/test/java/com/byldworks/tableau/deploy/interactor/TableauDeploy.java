@@ -1,5 +1,7 @@
 package com.byldworks.tableau.deploy.interactor;
 
+import com.byldworks.tableau.deploy.api.rest.bindings.ProjectListType;
+import com.byldworks.tableau.deploy.api.rest.bindings.ProjectType;
 import com.byldworks.tableau.deploy.api.rest.bindings.TableauCredentialsType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,6 +37,22 @@ public class TableauDeploy {
                 s_properties.getProperty("user.name"),
                 s_properties.getProperty("user.password"),
                 s_properties.getProperty("site.default.contentUrl"));
+        String currentSiteId = credential.getSite().getId();
+        String currentUserId = credential.getUser().getId();
+        logger.info("Current SiteID: " + currentSiteId);
+        logger.info("Current User: " + currentUserId);
+
+        ProjectType defaultProject;
+        ProjectListType projects = impl.invokeQueryProjects(credential, currentSiteId);
+        for (ProjectType project : projects.getProject()) {
+            if (project.getName().equals("default") || project.getName().equals("Default")) {
+                defaultProject = project;
+                logger.info(String.format("Default project found: %s", defaultProject.getId()));
+            } else {
+                logger.error("Failed to find Default project.");
+            }
+        }
+
         impl.invokeSignOut(credential);
 
     }
