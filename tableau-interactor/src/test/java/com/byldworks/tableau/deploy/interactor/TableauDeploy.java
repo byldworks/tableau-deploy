@@ -64,8 +64,13 @@ public class TableauDeploy {
 
         File downloadedWorkbook = impl.invokeDownloadWorkbook(credential, currentSiteId, workbookId, "../tableau-files/packaged-workbooks/Test_Download.twbx", false);
 
+        // Refresh workbook does not work due to mismatch between API return type and XSD.  Raised to Tableau Support.
+        //logger.info("Refreshing workbook.");
+        //JobType jobType = impl.invokeUpdateWorkbookNow(credential, currentSiteId, workbookId);
+
         logger.info("Now that we have successfully published a workbook, we're going to delete it.");
         impl.invokeDeleteWorkbook(credential, currentSiteId, defaultProject.getId(), workbookId);
+
         impl.invokeSignOut(credential);
 
     }

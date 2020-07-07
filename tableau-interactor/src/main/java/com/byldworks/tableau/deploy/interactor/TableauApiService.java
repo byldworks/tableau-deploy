@@ -90,4 +90,16 @@ public interface TableauApiService {
      */
     public File invokeDownloadWorkbook(TableauCredentialsType credential, String siteId, String workbookId, String targetFileName, boolean includeExtracts);
 
+    /**
+     * This method refreshes the specified workbook, with no need to associate the workbook refresh
+     * with a scheduled task. This method is the equivalent of selecting a workbook using the Tableau
+     * Server UI, and then selecting Refresh Extracts from the menu (also known as a "manual refresh").
+     *
+     * @param credential
+     * @param siteId
+     * @param workbookId
+     * @return
+     */
+    public JobType invokeUpdateWorkbookNow(TableauCredentialsType credential, String siteId, String workbookId);
+
 }

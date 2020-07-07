@@ -256,6 +256,29 @@ public class TableauApiImpl implements TableauApiService {
 
     }
 
+    @Override
+    public JobType invokeUpdateWorkbookNow(TableauCredentialsType credential, String siteId, String workbookId) {
+
+        logger.info("About to refresh extracts of workbook: " + workbookId);
+
+        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks/" + workbookId + "/refresh";
+
+        TsRequest requestPayload = m_objectFactory.createTsRequest();
+        requestPayload.setCredentials(credential);
+
+        TsResponse response = post(url, credential.getToken(), requestPayload);
+
+        if (response.getJob() != null) {
+            logger.info("Successfully invoked a refresh of workbook " + workbookId);
+            return response.getJob();
+        } else {
+            logger.error("Failed to refresh workbook.");
+        }
+
+        return null;
+
+    }
+
     private WorkbookType invokePublishWorkbookSimple(TableauCredentialsType credential, String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite) {
 
         String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks";
