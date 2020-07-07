@@ -225,11 +225,11 @@ public class TableauApiImpl implements TableauApiService {
     }
 
     @Override
-    public File invokeDownloadWorkbook(TableauCredentialsType credential, String siteId, String workbookId, String targetFileName) {
+    public File invokeDownloadWorkbook(TableauCredentialsType credential, String siteId, String workbookId, String targetFileName, boolean includeExtracts) {
 
         logger.info("About to download workbook: " + workbookId);
 
-        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks/" + workbookId + "/content";
+        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks/" + workbookId + "/content?includeExtract=" + includeExtracts;
 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()

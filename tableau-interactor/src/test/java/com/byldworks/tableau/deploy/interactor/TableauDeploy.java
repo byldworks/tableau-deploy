@@ -62,7 +62,7 @@ public class TableauDeploy {
 
         logger.info("About to download the workbook we just published.");
 
-        File downloadedWorkbook = impl.invokeDownloadWorkbook(credential, currentSiteId, workbookId, "../tableau-files/packaged-workbooks/Test_Download.twbx");
+        File downloadedWorkbook = impl.invokeDownloadWorkbook(credential, currentSiteId, workbookId, "../tableau-files/packaged-workbooks/Test_Download.twbx", false);
 
         logger.info("Now that we have successfully published a workbook, we're going to delete it.");
         impl.invokeDeleteWorkbook(credential, currentSiteId, defaultProject.getId(), workbookId);

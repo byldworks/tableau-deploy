@@ -88,6 +88,6 @@ public interface TableauApiService {
      * @param targetFileName
      * @return
      */
-    public File invokeDownloadWorkbook(TableauCredentialsType credential, String siteId, String workbookId, String targetFileName);
+    public File invokeDownloadWorkbook(TableauCredentialsType credential, String siteId, String workbookId, String targetFileName, boolean includeExtracts);
 
 }
