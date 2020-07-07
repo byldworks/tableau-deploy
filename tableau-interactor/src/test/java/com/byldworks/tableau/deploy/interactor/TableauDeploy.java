@@ -50,10 +50,17 @@ public class TableauDeploy {
             }
         }
 
-        File workbookFile = new File("../tableau-files/packaged-workbooks/demo.twbx");
+        /**
+         * Publish a workbook
+         */
+        File hwWorkbook = new File ("../tableau-files/workbooks/HelloWorld.twb");
+        WorkbookType hwPublish = impl.invokePublishWorkbook(credential, currentSiteId, defaultProject.getId(), "HelloWorld", hwWorkbook, false, true);
 
+        /**
+         * Publish a packaged workbook
+         */
+        File workbookFile = new File("../tableau-files/packaged-workbooks/Demo.twbx");
         WorkbookType publishWorkbook = impl.invokePublishWorkbook(credential, currentSiteId, defaultProject.getId(), "Test", workbookFile, false, true);
-
         WorkbookListType workbookListType = impl.invokeQueryWorkbooks(credential, currentSiteId, currentUserId);
         for (WorkbookType workbook : workbookListType.getWorkbook()) {
             logger.info("Found workbook: " + workbook.getId() + " | " + workbook.getName());
@@ -68,7 +75,8 @@ public class TableauDeploy {
         //logger.info("Refreshing workbook.");
         //JobType jobType = impl.invokeUpdateWorkbookNow(credential, currentSiteId, workbookId);
 
-        logger.info("Now that we have successfully published a workbook, we're going to delete it.");
+        logger.info("Now that we have successfully published two workbooks, we're going to delete them.");
+        impl.invokeDeleteWorkbook(credential, currentSiteId, defaultProject.getId(), hwPublish.getId());
         impl.invokeDeleteWorkbook(credential, currentSiteId, defaultProject.getId(), workbookId);
 
         impl.invokeSignOut(credential);

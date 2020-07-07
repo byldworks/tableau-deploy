@@ -1,0 +1,68 @@
+<?xml version='1.0' encoding='utf-8' ?>
+
+<!-- build 20203.20.0630.1517                               -->
+<workbook original-version='18.1' source-build='2020.3.0 (20203.20.0630.1517)' version='18.1' xml:base='http://localhost:9100' xmlns:user='http://www.tableausoftware.com/xml/user'>
+  <document-format-change-manifest>
+    <_.fcp.MarkAnimation.true...MarkAnimation />
+    <SheetIdentifierTracking />
+    <WindowsPersistSimpleIdentifiers />
+  </document-format-change-manifest>
+  <repository-location id='HelloWorld' path='/t/byldworkssandboxdev254045/workbooks' revision='1.0' site='byldworkssandboxdev254045' />
+  <preferences />
+  <datasources />
+  <worksheets>
+    <worksheet name='Sheet 1'>
+      <repository-location id='Sheet1' path='/t/byldworkssandboxdev254045/workbooks/HelloWorld' revision='' site='byldworkssandboxdev254045' />
+      <layout-options>
+        <title>
+          <formatted-text>
+            <run>Hello World!</run>
+          </formatted-text>
+        </title>
+      </layout-options>
+      <table>
+        <view>
+          <datasources />
+          <aggregation value='true' />
+        </view>
+        <style />
+        <panes>
+          <pane selection-relaxation-option='selection-relaxation-allow'>
+            <view>
+              <breakdown value='auto' />
+            </view>
+            <mark class='Automatic' />
+          </pane>
+        </panes>
+        <rows />
+        <cols />
+      </table>
+      <simple-id uuid='{7A70D5D3-25AD-4B79-9697-6044BC50289C}' />
+    </worksheet>
+  </worksheets>
+  <windows>
+    <window class='worksheet' maximized='true' name='Sheet 1'>
+      <cards>
+        <edge name='left'>
+          <strip size='160'>
+            <card type='pages' />
+            <card type='filters' />
+            <card type='marks' />
+          </strip>
+        </edge>
+        <edge name='top'>
+          <strip size='31'>
+            <card type='columns' />
+          </strip>
+          <strip size='31'>
+            <card type='rows' />
+          </strip>
+          <strip size='31'>
+            <card type='title' />
+          </strip>
+        </edge>
+      </cards>
+      <simple-id uuid='{EFB0692C-A17C-4A39-B1CC-2440FB422EF3}' />
+    </window>
+  </windows>
+</workbook>

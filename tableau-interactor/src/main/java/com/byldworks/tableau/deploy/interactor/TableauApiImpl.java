@@ -281,9 +281,13 @@ public class TableauApiImpl implements TableauApiService {
 
     private WorkbookType invokePublishWorkbookSimple(TableauCredentialsType credential, String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite) {
 
-        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks";
+        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks?overwrite=" + overwrite;
 
-        TsRequest payload = createPayloadToPublishWorkbook(workbookName, projectId);
+        ConnectionCredentialsType connCredentials = new ConnectionCredentialsType();
+        connCredentials.setName(m_properties.getProperty("user.name"));
+        connCredentials.setPassword(m_properties.getProperty("user.password"));
+
+        TsRequest payload = createPayloadToPublishWorkbook(workbookName, projectId, connCredentials);
 
         TsResponse response = postMultiPart(url, credential.getToken(), payload, workbookFile);
 
@@ -323,15 +327,21 @@ public class TableauApiImpl implements TableauApiService {
 
     }
 
-    private TsRequest createPayloadToPublishWorkbook(String workbookName, String projectId) {
+    private TsRequest createPayloadToPublishWorkbook(String workbookName, String projectId, ConnectionCredentialsType connCredentials) {
 
         TsRequest requestPayload = m_objectFactory.createTsRequest();
         WorkbookType workbook = m_objectFactory.createWorkbookType();
         ProjectType project = m_objectFactory.createProjectType();
+        ConnectionListType connList = m_objectFactory.createConnectionListType();
+        ConnectionType conn = m_objectFactory.createConnectionType();
 
+        conn.setServerAddress(m_properties.getProperty("server.host"));
+        conn.setConnectionCredentials(connCredentials);
+        connList.getConnection().add(conn);
         project.setId(projectId);
         workbook.setName(workbookName);
         workbook.setProject(project);
+        workbook.setConnections(connList);
         requestPayload.setWorkbook(workbook);
 
         return requestPayload;
