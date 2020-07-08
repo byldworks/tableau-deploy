@@ -279,6 +279,41 @@ public class TableauApiImpl implements TableauApiService {
 
     }
 
+    @Override
+    public DataSourceType invokePublishDataSource(TableauCredentialsType credential, String siteId, String projectId, String dataSourceName, File dataSourceFile, boolean overwrite) {
+
+        logger.info("About to publish DataSource " + dataSourceName + " from file " + dataSourceFile.getName());
+
+        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/datasources?overwrite=" + overwrite;
+
+        TsRequest payload = createPayloadToPublishDataSource(dataSourceName, projectId);
+
+        TsResponse response = postMultiPart(url, credential.getToken(), payload, dataSourceFile);
+
+        if (response.getDatasource() != null) {
+            logger.info("Successfully published datasource");
+            return response.getDatasource();
+        } else {
+            logger.error("Failed to publish datasource");
+        }
+
+        return null;
+
+    }
+
+    private TsRequest createPayloadToPublishDataSource(String dataSourceName, String projectId) {
+
+        TsRequest requestPayload = m_objectFactory.createTsRequest();
+        DataSourceType dataSource = m_objectFactory.createDataSourceType();
+        ProjectType project = m_objectFactory.createProjectType();
+        project.setId(projectId);
+        dataSource.setName(dataSourceName);
+        dataSource.setProject(project);
+        requestPayload.setDatasource(dataSource);
+        return requestPayload;
+
+    }
+
     private WorkbookType invokePublishWorkbookSimple(TableauCredentialsType credential, String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite) {
 
         String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks?overwrite=" + overwrite;

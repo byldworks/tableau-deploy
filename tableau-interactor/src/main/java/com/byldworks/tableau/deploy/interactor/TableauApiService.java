@@ -102,4 +102,17 @@ public interface TableauApiService {
      */
     public JobType invokeUpdateWorkbookNow(TableauCredentialsType credential, String siteId, String workbookId);
 
+    /**
+     * Publishes a data source on the specified site.
+     *
+     * @param credential
+     * @param siteId
+     * @param projectId
+     * @param datSourceName
+     * @param dataSourceFile
+     * @param overwrite
+     * @return
+     */
+    public DataSourceType invokePublishDataSource(TableauCredentialsType credential, String siteId, String projectId, String dataSourceName, File dataSourceFile, boolean overwrite);
+
 }
