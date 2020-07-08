@@ -288,7 +288,7 @@ public class TableauApiImpl implements TableauApiService {
 
         TsRequest payload = createPayloadToPublishDataSource(dataSourceName, projectId);
 
-        TsResponse response = postMultiPart(url, credential.getToken(), payload, dataSourceFile);
+        TsResponse response = postMultiPart(url, credential.getToken(), payload, dataSourceFile, "datssource");
 
         if (response.getDatasource() != null) {
             logger.info("Successfully published datasource");
@@ -324,7 +324,7 @@ public class TableauApiImpl implements TableauApiService {
 
         TsRequest payload = createPayloadToPublishWorkbook(workbookName, projectId, connCredentials);
 
-        TsResponse response = postMultiPart(url, credential.getToken(), payload, workbookFile);
+        TsResponse response = postMultiPart(url, credential.getToken(), payload, workbookFile, "workbook");
 
         if (response.getWorkbook() != null) {
             logger.info("Successfully published workbook");
@@ -460,10 +460,11 @@ public class TableauApiImpl implements TableauApiService {
      * @param url
      * @param authToken
      * @param requestPayload
-     * @param workbookFile
+     * @param file
+     * @param fileType
      * @return
      */
-    private TsResponse postMultiPart(String url, String authToken, TsRequest requestPayload, File workbookFile) {
+    private TsResponse postMultiPart(String url, String authToken, TsRequest requestPayload, File file, String fileType) {
 
         StringWriter writer = new StringWriter();
 
@@ -475,13 +476,23 @@ public class TableauApiImpl implements TableauApiService {
             }
         }
 
+        String payloadType = null;
+        if (fileType.equals("workbook")) {
+            payloadType = "tableau_workbook";
+        } else if (fileType.equals("datasource")) {
+            payloadType = "tableau_datasource";
+        } else {
+            logger.error("No file type set. Publish will fail");
+            return null;
+        }
+
         String payload = writer.toString();
         logger.debug("Input payload: \n" + payload);
 
         Map<Object, Object> data = new LinkedHashMap<>();
         data.put("request_payload", payload);
-        Path workbookPath = workbookFile.toPath();
-        data.put("tableau_workbook", workbookPath);
+        Path path = file.toPath();
+        data.put(payloadType, path);
         String boundary = new BigInteger(256, new Random()).toString();
 
         HttpClient client = HttpClient.newHttpClient();
