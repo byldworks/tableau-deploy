@@ -23,112 +23,210 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Tableau REST API Implementation of TableauApiService interface.
  * <p>
  * Created by suraj on 04/07/2020
  */
-public class TableauApiImpl implements TableauApiService {
+public class TableauApiImpl implements TableauApiService
+{
 
     private static final Logger logger = LogManager.getLogger(TableauApiImpl.class);
 
-    private static TableauApiImpl INSTANCE = null;
+    private static class TableauApiImpl_Key
+    {
+        private final String username;
+        private final String password;
+        private final String contentUrl;
 
-    private static Properties m_properties = new Properties();
-
-    private ObjectFactory m_objectFactory = new ObjectFactory();
-
-    private static Marshaller s_jaxbMarshaller;
-    private static Unmarshaller s_jaxbUnmarshaller;
-
-    public static TableauApiImpl getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new TableauApiImpl();
-            initialize();
+        TableauApiImpl_Key(String username, String password, String contentUrl)
+        {
+            this.username = username;
+            this.password = password;
+            this.contentUrl = contentUrl;
         }
 
-        return INSTANCE;
-
-    }
-
-    private static void initialize() {
-
-        try {
-            m_properties.load(new FileInputStream("src/main/resources/config.properties"));
-            JAXBContext jaxbContext = JAXBContext.newInstance(TsRequest.class, TsResponse.class);
-            SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            Schema schema = schemaFactory.newSchema(new File(m_properties.getProperty("server.schema.location")));
-            s_jaxbMarshaller = jaxbContext.createMarshaller();
-            s_jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-            s_jaxbMarshaller.setSchema(schema);
-            s_jaxbUnmarshaller.setSchema(schema);
-        } catch (SAXException | JAXBException | IOException e) {
-            throw new IllegalStateException("Failed to initialize Tableau Interactor.");
+        @Override public boolean equals(Object o)
+        {
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
+            TableauApiImpl_Key that = (TableauApiImpl_Key) o;
+            return username.equals(that.username) && password.equals(that.password) && contentUrl.equals(that.contentUrl);
         }
 
+        @Override public int hashCode()
+        {
+            return Objects.hash(username, password, contentUrl);
+        }
+
+        @Override public String toString()
+        {
+            return "TableauApiImpl_Key{" + "username='" + username + '\'' + ", password='" + "masked-length:" + password.length() + '\'' + ", contentUrl='" + contentUrl + '\'' + '}';
+        }
     }
+
+    private static final ReentrantLock _lock = new ReentrantLock();
+    private static final Map<TableauApiImpl_Key, TableauApiImpl> _instances = new ConcurrentHashMap<>();
+
+    static TableauApiImpl getInstance(final String username,
+                                      final String password,
+                                      final String contentUrl,
+                                      final Map<String, String> envVariable)
+    {
+        final TableauApiImpl_Key key = new TableauApiImpl_Key(username, password, contentUrl);
+        TableauApiImpl tableauApi = _instances.get(key);
+        if(tableauApi != null ) return tableauApi;
+
+        try
+        {
+            _lock.lock();
+            tableauApi = _instances.get(key);
+            if(tableauApi != null ) return tableauApi;
+            tableauApi = new TableauApiImpl(key, envVariable);
+            _instances.put(key, tableauApi);
+            return tableauApi;
+        }
+        finally
+        {
+            _lock.unlock();
+        }
+    }
+
+    public static final String SERVER_HOST_ENV_KEY = "server.host";
+    public static final String SERVER_API_VERSION_ENV_KEY = "server.api.version";
 
     private final String TABLEAU_AUTH_HEADER = "X-Tableau-Auth";
 
+    private final String XSD_CLASS_PATH = "ts-api_3_8.xsd";
+
+    private final TableauApiImpl_Key key;
+    private final Map<String, String> envProperties;
+
+    private final SchemaFactory schemaFactory;
+    private final Schema schema;
+
+    private final JAXBContext jaxbContext;
+    private final ObjectFactory m_objectFactory;
+    private final Marshaller s_jaxbMarshaller;
+    private final Unmarshaller s_jaxbUnmarshaller;
+
+    private final TableauCredentialsType tableauCredentials;
+
+    private final String urlBase;
+
+    private TableauApiImpl(TableauApiImpl_Key key, Map<String, String> envProperties)
+    {
+        this.key = key;
+        this.envProperties = envProperties;
+
+        try
+        {
+            jaxbContext = JAXBContext.newInstance(TsRequest.class, TsResponse.class);
+            schemaFactory =  SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+            InputStream ins = TableauApiImpl.class.getClassLoader().getResourceAsStream(XSD_CLASS_PATH);
+            if(ins == null)
+            {
+                throw new TableauApiServiceException("Expected to find the " + XSD_CLASS_PATH + " - in the classpath. Is your project set up correctly.");
+            }
+            schema = schemaFactory.newSchema(new StreamSource(ins));
+            m_objectFactory = new ObjectFactory();
+            s_jaxbMarshaller = jaxbContext.createMarshaller();
+            s_jaxbUnmarshaller = jaxbContext.createUnmarshaller();
+
+            s_jaxbMarshaller.setSchema(schema);
+            s_jaxbUnmarshaller.setSchema(schema);
+        }
+        catch (JAXBException | SAXException e)
+        {
+            String msg = "Unable to initilise the tableau API - got exception : " + e;
+            logger.error(msg, e);
+            throw new RuntimeException(msg, e);
+        }
+
+        if(envProperties.containsKey(SERVER_HOST_ENV_KEY) == false) throw new IllegalArgumentException("You must supply the environment variable key - " + SERVER_HOST_ENV_KEY);
+        if(envProperties.containsKey(SERVER_API_VERSION_ENV_KEY) == false) throw new IllegalArgumentException("You must supply the environment variable key - " + SERVER_API_VERSION_ENV_KEY);
+
+        urlBase = envProperties.get(SERVER_HOST_ENV_KEY) + envProperties.get(SERVER_API_VERSION_ENV_KEY);
+
+        logger.info("Tableau URLBase is : " + urlBase);
+        logger.info("Attempt to log into Tableau with : " + key);
+        tableauCredentials = invokeSignIn();
+    }
+
     @Override
-    public TableauCredentialsType invokeSignIn(String username, String password, String contentUrl) {
+    public TableauCredentialsType getTableauCredentialsType()
+    {
+        return tableauCredentials;
+    }
+
+    private TableauCredentialsType invokeSignIn()
+    {
 
         logger.info("Signing in to Tableau Server");
 
-        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "auth/signin";
+        String url = urlBase + "auth/signin";
 
-        TsRequest payload = createPayloadForSignin(username, password, contentUrl);
-
+        TsRequest payload = createPayloadForSignin();
         TsResponse response = post(url, "", payload);
 
-        if (response.getCredentials() != null) {
+        if (response.getCredentials() != null)
+        {
             logger.info("Sign in successful");
             return response.getCredentials();
         }
 
-        return null;
+        throw new TableauApiServiceException("Unable to sign into Tableau - response did not contain credentials");
 
     }
 
     @Override
-    public void invokeSignOut(TableauCredentialsType credential) {
-
+    public void invokeSignOut()
+    {
         logger.info("Signing out of Tableau Server");
 
-        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "auth/signout";
+        String url = urlBase + "auth/signout";
 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header(TABLEAU_AUTH_HEADER, credential.getToken())
+                .header(TABLEAU_AUTH_HEADER, tableauCredentials.getToken())
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .build();
         HttpResponse<String> response = null;
-        try {
+        try
+        {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        }
+        catch (IOException | InterruptedException e)
+        {
+            String msg = "Unable to invoke Tableau - " + url + " - got : " + e;
+            throw new TableauApiServiceException(msg, e);
         }
 
-        if (response.statusCode() == 204) {
+        if (response.statusCode() == 204)
+        {
             logger.info("Successfully signed out of Tableau Server");
-        } else {
+        }
+        else
+            {
             logger.error("Failed to sign out of Tableau Server");
         }
 
     }
 
     @Override
-    public SiteListType invokeQuerySites(TableauCredentialsType credential) {
+    public SiteListType invokeQuerySites() {
 
         logger.info("Querying sites on Tableau Server");
 
-        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites";
+        String url =urlBase + "sites";
 
-        TsResponse response = get(url, credential.getToken());
+        TsResponse response = get(url, tableauCredentials.getToken());
 
         if (response.getSites() != null) {
             logger.info("Succesfully queried sites.");
@@ -142,13 +240,13 @@ public class TableauApiImpl implements TableauApiService {
     }
 
     @Override
-    public ProjectListType invokeQueryProjects(TableauCredentialsType credential, String siteId) {
+    public ProjectListType invokeQueryProjects( String siteId) {
 
         logger.info("Querying projects on site " + siteId);
 
-        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/projects";
+        String url = urlBase + "sites/" + siteId + "/projects";
 
-        TsResponse response = get(url,credential.getToken());
+        TsResponse response = get(url,tableauCredentials.getToken());
 
         if (response.getProjects() != null) {
             logger.info("Succesfully queried projects.");
@@ -162,13 +260,13 @@ public class TableauApiImpl implements TableauApiService {
     }
 
     @Override
-    public WorkbookListType invokeQueryWorkbooks(TableauCredentialsType credential, String siteId, String userId) {
+    public WorkbookListType invokeQueryWorkbooks(String siteId, String userId) {
 
         logger.info("Querying workbooks on site " + siteId);
 
-        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/users/" + userId + "/workbooks";
+        String url = urlBase + "sites/" + siteId + "/users/" + userId + "/workbooks";
 
-        TsResponse response = get(url,credential.getToken());
+        TsResponse response = get(url,tableauCredentials.getToken());
 
         if (response.getWorkbooks() != null) {
             logger.info("Succesfully queried workbooks.");
@@ -182,39 +280,28 @@ public class TableauApiImpl implements TableauApiService {
     }
 
     @Override
-    public WorkbookType invokePublishWorkbook(TableauCredentialsType credential, String siteId, String projectId, String workbookName, File workbookFile, boolean chunkedPublish, boolean overwrite) {
-
-        logger.info("Publishing workbook " + workbookName + " on site " + siteId);
-
-        if (chunkedPublish) {
-            return invokePublishWorkbookChunked(credential, siteId, projectId, workbookName, workbookFile, overwrite);
-        } else {
-            return invokePublishWorkbookSimple(credential, siteId, projectId, workbookName, workbookFile, overwrite);
-        }
-
-    }
-
-    @Override
-    public void invokeDeleteWorkbook(TableauCredentialsType credential, String siteId, String projectId, String workbookId) {
+    public void invokeDeleteWorkbook(String siteId, String projectId, String workbookId) {
 
         logger.warn("About to delete workbook " + workbookId);
 
-        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks/" + workbookId;
+        String url = urlBase + "sites/" + siteId + "/workbooks/" + workbookId;
 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header(TABLEAU_AUTH_HEADER, credential.getToken())
+                .header(TABLEAU_AUTH_HEADER, tableauCredentials.getToken())
                 .DELETE()
                 .build();
         HttpResponse<String> response = null;
-        try {
+        try
+        {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
+         catch (IOException | InterruptedException e)
+         {
+             String msg = "Unable to invoke Tableau - " + url + " - got : " + e;
+             throw new TableauApiServiceException(msg, e);
+         }
 
         if (response.statusCode() == 204) {
             logger.info("Successfully deleted workbook");
@@ -225,24 +312,38 @@ public class TableauApiImpl implements TableauApiService {
     }
 
     @Override
-    public File invokeDownloadWorkbook(TableauCredentialsType credential, String siteId, String workbookId, String targetFileName, boolean includeExtracts) {
+    public WorkbookType invokePublishWorkbook(String siteId, String projectId, String workbookName, File workbookFile, boolean chunkedPublish, boolean overwrite) {
+
+        logger.info("Publishing workbook " + workbookName + " on site " + siteId);
+
+        if (chunkedPublish) {
+            return invokePublishWorkbookChunked(siteId, projectId, workbookName, workbookFile, overwrite);
+        } else {
+            return invokePublishWorkbookSimple(siteId, projectId, workbookName, workbookFile, overwrite);
+        }
+
+    }
+
+    @Override
+    public File invokeDownloadWorkbook(String siteId, String workbookId, String targetFileName, boolean includeExtracts) {
 
         logger.info("About to download workbook: " + workbookId);
 
-        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks/" + workbookId + "/content?includeExtract=" + includeExtracts;
+        String url = urlBase + "sites/" + siteId + "/workbooks/" + workbookId + "/content?includeExtract=" + includeExtracts;
 
         HttpClient client = HttpClient.newHttpClient();
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
-                .header(TABLEAU_AUTH_HEADER, credential.getToken())
+                .header(TABLEAU_AUTH_HEADER, tableauCredentials.getToken())
                 .build();
         HttpResponse<Path> responseOfFile = null;
         try {
             responseOfFile = client.send(request, HttpResponse.BodyHandlers.ofFile(Path.of(targetFileName)));
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        }
+        catch (IOException | InterruptedException e)
+        {
+            String msg = "Unable to invoke Tableau - " + url + " - got : " + e;
+            throw new TableauApiServiceException(msg, e);
         }
 
         if (responseOfFile.statusCode() == 200) {
@@ -252,21 +353,21 @@ public class TableauApiImpl implements TableauApiService {
             logger.error("Failed to download workbook");
         }
 
-        return null;
+        throw new TableauApiServiceException("Invoked - " + url + " - but got back the response code : " + responseOfFile.statusCode() + " - hence failing");
 
     }
 
     @Override
-    public JobType invokeUpdateWorkbookNow(TableauCredentialsType credential, String siteId, String workbookId) {
+    public JobType invokeUpdateWorkbookNow(String siteId, String workbookId) {
 
         logger.info("About to refresh extracts of workbook: " + workbookId);
 
-        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks/" + workbookId + "/refresh";
+        String url = urlBase + "sites/" + siteId + "/workbooks/" + workbookId + "/refresh";
 
         TsRequest requestPayload = m_objectFactory.createTsRequest();
-        requestPayload.setCredentials(credential);
+        requestPayload.setCredentials(tableauCredentials);
 
-        TsResponse response = post(url, credential.getToken(), requestPayload);
+        TsResponse response = post(url, tableauCredentials.getToken(), requestPayload);
 
         if (response.getJob() != null) {
             logger.info("Successfully invoked a refresh of workbook " + workbookId);
@@ -275,20 +376,20 @@ public class TableauApiImpl implements TableauApiService {
             logger.error("Failed to refresh workbook.");
         }
 
-        return null;
+        throw new TableauApiServiceException("Invoked - " + url + " - but did not get back anything from response.getJob()  - hence failing");
 
     }
 
     @Override
-    public DataSourceType invokePublishDataSource(TableauCredentialsType credential, String siteId, String projectId, String dataSourceName, File dataSourceFile, boolean overwrite) {
+    public DataSourceType invokePublishDataSource(String siteId, String projectId, String dataSourceName, File dataSourceFile, boolean overwrite) {
 
         logger.info("About to publish DataSource " + dataSourceName + " from file " + dataSourceFile.getName());
 
-        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/datasources?overwrite=" + overwrite;
+        String url = urlBase + "sites/" + siteId + "/datasources?overwrite=" + overwrite;
 
         TsRequest payload = createPayloadToPublishDataSource(dataSourceName, projectId);
 
-        TsResponse response = postMultiPart(url, credential.getToken(), payload, dataSourceFile, "datssource");
+        TsResponse response = postMultiPart(url, tableauCredentials.getToken(), payload, dataSourceFile, "datssource");
 
         if (response.getDatasource() != null) {
             logger.info("Successfully published datasource");
@@ -297,11 +398,12 @@ public class TableauApiImpl implements TableauApiService {
             logger.error("Failed to publish datasource");
         }
 
-        return null;
+        throw new TableauApiServiceException("Invoked - " + url + " - but did not get back anything from response.getDatasource()  - hence failing");
 
     }
 
-    private TsRequest createPayloadToPublishDataSource(String dataSourceName, String projectId) {
+    private TsRequest createPayloadToPublishDataSource(String dataSourceName, String projectId)
+    {
 
         TsRequest requestPayload = m_objectFactory.createTsRequest();
         DataSourceType dataSource = m_objectFactory.createDataSourceType();
@@ -314,17 +416,17 @@ public class TableauApiImpl implements TableauApiService {
 
     }
 
-    private WorkbookType invokePublishWorkbookSimple(TableauCredentialsType credential, String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite) {
+    private WorkbookType invokePublishWorkbookSimple(String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite) {
 
-        String url = m_properties.getProperty("server.host") + m_properties.getProperty("server.api.version") + "sites/" + siteId + "/workbooks?overwrite=" + overwrite;
+        String url = urlBase + "sites/" + siteId + "/workbooks?overwrite=" + overwrite;
 
         ConnectionCredentialsType connCredentials = new ConnectionCredentialsType();
-        connCredentials.setName(m_properties.getProperty("user.name"));
-        connCredentials.setPassword(m_properties.getProperty("user.password"));
+        connCredentials.setName(key.username);
+        connCredentials.setPassword(key.username);
 
         TsRequest payload = createPayloadToPublishWorkbook(workbookName, projectId, connCredentials);
 
-        TsResponse response = postMultiPart(url, credential.getToken(), payload, workbookFile, "workbook");
+        TsResponse response = postMultiPart(url, tableauCredentials.getToken(), payload, workbookFile, "workbook");
 
         if (response.getWorkbook() != null) {
             logger.info("Successfully published workbook");
@@ -333,28 +435,29 @@ public class TableauApiImpl implements TableauApiService {
             logger.error("Failed to publish workbook.");
         }
 
+        throw new TableauApiServiceException("Invoked - " + url + " - but did not get back anything from response.getWorkbook()  - hence failing");
+
+    }
+
+    private WorkbookType invokePublishWorkbookChunked(String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite) {
+
         return null;
 
     }
 
-    private WorkbookType invokePublishWorkbookChunked(TableauCredentialsType credential, String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite) {
-
-        return null;
-
-    }
-
-    private TsRequest createPayloadForSignin(String username, String password, String contentUrl) {
+    private TsRequest createPayloadForSignin()
+    {
 
         TsRequest requestPayload = m_objectFactory.createTsRequest();
 
         TableauCredentialsType signInCredentials = m_objectFactory.createTableauCredentialsType();
 
         SiteType site = m_objectFactory.createSiteType();
-        site.setContentUrl(contentUrl);
+        site.setContentUrl(key.contentUrl);
 
         signInCredentials.setSite(site);
-        signInCredentials.setName(username);
-        signInCredentials.setPassword(password);
+        signInCredentials.setName(key.username);
+        signInCredentials.setPassword(key.password);
 
         requestPayload.setCredentials(signInCredentials);
 
@@ -370,7 +473,7 @@ public class TableauApiImpl implements TableauApiService {
         ConnectionListType connList = m_objectFactory.createConnectionListType();
         ConnectionType conn = m_objectFactory.createConnectionType();
 
-        conn.setServerAddress(m_properties.getProperty("server.host"));
+        conn.setServerAddress(envProperties.get(SERVER_HOST_ENV_KEY));
         conn.setConnectionCredentials(connCredentials);
         connList.getConnection().add(conn);
         project.setId(projectId);
@@ -391,13 +494,15 @@ public class TableauApiImpl implements TableauApiService {
                 .header(TABLEAU_AUTH_HEADER, authToken)
                 .build();
         HttpResponse<String> response = null;
-        try {
+        try
+        {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         }
+        catch (IOException | InterruptedException e)
+            {
+                String msg = "Unable to invoke Tableau - " + url + " - got : " + e;
+                throw new TableauApiServiceException(msg, e);
+            }
 
         String responseXML = response != null ? response.body() : null;
 
@@ -419,10 +524,13 @@ public class TableauApiImpl implements TableauApiService {
 
         StringWriter writer = new StringWriter();
 
-        if (requestPayload != null) {
-            try {
+        if (requestPayload != null)
+        {
+            try
+            {
                 s_jaxbMarshaller.marshal(requestPayload, writer);
-            } catch (JAXBException ex) {
+            }
+            catch (JAXBException ex) {
                 logger.error("There was a problem marshalling the payload: " + ex);
             }
         }
@@ -437,13 +545,16 @@ public class TableauApiImpl implements TableauApiService {
                 .header(TABLEAU_AUTH_HEADER, authToken)
                 .POST(HttpRequest.BodyPublishers.ofString(payload))
                 .build();
+
         HttpResponse<String> response = null;
-        try {
+        try
+        {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        }
+        catch (IOException | InterruptedException e)
+        {
+            String msg = "Unable to invoke Tableau - " + url + " - got : " + e;
+            throw new TableauApiServiceException(msg, e);
         }
 
         String responseXML = response != null ? response.body() : null;
