@@ -451,6 +451,28 @@ public class TableauApiImpl implements TableauApiService
 
 	}
 
+	@Override
+	public JobType invokeQueryJob(String siteId, String jobId)
+	{
+
+		logger.info("Querying job: " + jobId);
+
+		String url = urlBase + "sites/" + siteId + "/jobs/" + jobId;
+
+		TsResponse response = get(url, tableauCredentials.getToken());
+
+		if (response.getJob() != null)
+		{
+			return response.getJob();
+		} else
+		{
+			logger.error("There was a problem querying the job.");
+		}
+
+		return null;
+
+	}
+
 	private TsRequest createPayloadToPublishDataSource(String dataSourceName, String projectId)
 	{
 

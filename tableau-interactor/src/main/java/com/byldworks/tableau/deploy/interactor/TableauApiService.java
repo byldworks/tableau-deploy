@@ -116,6 +116,15 @@ public interface TableauApiService
 	public JobType invokeCreateExtract(String siteId, String dataSourceId);
 
 	/**
+	 * Returns status information about an asynchronous process that is tracked using a job.
+	 *
+	 * @param siteId
+	 * @param jobId
+	 * @return
+	 */
+	public JobType invokeQueryJob(String siteId, String jobId);
+
+	/**
 	 * Returns the Tableau credentials object.
 	 *
 	 * @return
