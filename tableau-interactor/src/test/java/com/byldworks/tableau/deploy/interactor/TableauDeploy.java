@@ -73,13 +73,13 @@ public class TableauDeploy
 		 * Publish a workbook
 		 */
 		File hwWorkbook = new File("../tableau-files/workbooks/HelloWorld.twb");
-		WorkbookType hwPublish = impl.invokePublishWorkbook(currentSiteId, defaultProject.getId(), "HelloWorld", hwWorkbook, false, true);
+		WorkbookType hwPublish = impl.invokePublishWorkbook(currentSiteId, defaultProject.getId(), "HelloWorld", hwWorkbook, true);
 
 		/**
 		 * Publish a packaged workbook
 		 */
 		File workbookFile = new File("../tableau-files/packaged-workbooks/Demo.twbx");
-		WorkbookType publishWorkbook = impl.invokePublishWorkbook(currentSiteId, defaultProject.getId(), "Test", workbookFile, false, true);
+		WorkbookType publishWorkbook = impl.invokePublishWorkbook(currentSiteId, defaultProject.getId(), "Test", workbookFile, true);
 		WorkbookListType workbookListType = impl.invokeQueryWorkbooks(currentSiteId, currentUserId);
 		for (WorkbookType workbook : workbookListType.getWorkbook())
 		{

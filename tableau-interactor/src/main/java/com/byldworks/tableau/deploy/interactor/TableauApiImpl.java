@@ -316,18 +316,31 @@ public class TableauApiImpl implements TableauApiService
 	}
 
 	@Override
-	public WorkbookType invokePublishWorkbook(String siteId, String projectId, String workbookName, File workbookFile, boolean chunkedPublish, boolean overwrite)
+	public WorkbookType invokePublishWorkbook(String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite)
 	{
 
 		logger.info("Publishing workbook " + workbookName + " on site " + siteId);
 
-		if (chunkedPublish)
+		String url = urlBase + "sites/" + siteId + "/workbooks?overwrite=" + overwrite;
+
+		ConnectionCredentialsType connCredentials = new ConnectionCredentialsType();
+		connCredentials.setName(key.username);
+		connCredentials.setPassword(key.username);
+
+		TsRequest payload = createPayloadToPublishWorkbook(workbookName, projectId, connCredentials);
+
+		TsResponse response = postMultiPart(url, tableauCredentials.getToken(), payload, workbookFile, "workbook");
+
+		if (response.getWorkbook() != null)
 		{
-			return invokePublishWorkbookChunked(siteId, projectId, workbookName, workbookFile, overwrite);
+			logger.info("Successfully published workbook");
+			return response.getWorkbook();
 		} else
 		{
-			return invokePublishWorkbookSimple(siteId, projectId, workbookName, workbookFile, overwrite);
+			logger.error("Failed to publish workbook.");
 		}
+
+		throw new TableauApiServiceException("Invoked - " + url + " - but did not get back anything from response.getWorkbook()  - hence failing");
 
 	}
 
@@ -484,39 +497,6 @@ public class TableauApiImpl implements TableauApiService
 		dataSource.setProject(project);
 		requestPayload.setDatasource(dataSource);
 		return requestPayload;
-
-	}
-
-	private WorkbookType invokePublishWorkbookSimple(String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite)
-	{
-
-		String url = urlBase + "sites/" + siteId + "/workbooks?overwrite=" + overwrite;
-
-		ConnectionCredentialsType connCredentials = new ConnectionCredentialsType();
-		connCredentials.setName(key.username);
-		connCredentials.setPassword(key.username);
-
-		TsRequest payload = createPayloadToPublishWorkbook(workbookName, projectId, connCredentials);
-
-		TsResponse response = postMultiPart(url, tableauCredentials.getToken(), payload, workbookFile, "workbook");
-
-		if (response.getWorkbook() != null)
-		{
-			logger.info("Successfully published workbook");
-			return response.getWorkbook();
-		} else
-		{
-			logger.error("Failed to publish workbook.");
-		}
-
-		throw new TableauApiServiceException("Invoked - " + url + " - but did not get back anything from response.getWorkbook()  - hence failing");
-
-	}
-
-	private WorkbookType invokePublishWorkbookChunked(String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite)
-	{
-
-		return null;
 
 	}
 

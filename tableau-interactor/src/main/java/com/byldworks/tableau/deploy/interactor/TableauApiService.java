@@ -59,11 +59,10 @@ public interface TableauApiService
 	 * @param projectId
 	 * @param workbookName
 	 * @param workbookFile
-	 * @param chunkedPublish
 	 * @param overwrite
 	 * @return
 	 */
-	public WorkbookType invokePublishWorkbook(String siteId, String projectId, String workbookName, File workbookFile, boolean chunkedPublish, boolean overwrite);
+	public WorkbookType invokePublishWorkbook(String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite);
 
 	/**
 	 * Method to delete a workbook from Tableau Server.
