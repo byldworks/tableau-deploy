@@ -415,6 +415,42 @@ public class TableauApiImpl implements TableauApiService
 
 	}
 
+	@Override
+	public JobType invokeCreateExtract(String siteId, String dataSourceId)
+	{
+
+		logger.info("About to create an extract for DataSource " + dataSourceId);
+
+		String url = urlBase + "sites/" + siteId + "/datasources/" + dataSourceId + "/createExtract";
+
+		HttpClient client = HttpClient.newHttpClient();
+		HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header(TABLEAU_AUTH_HEADER, tableauCredentials.getToken()).POST(HttpRequest.BodyPublishers.noBody()).build();
+		HttpResponse<String> response = null;
+		try
+		{
+			response = client.send(request, HttpResponse.BodyHandlers.ofString());
+		} catch (IOException | InterruptedException e)
+		{
+			String msg = "Unable to invoke Tableau - " + url + " - got : " + e;
+			throw new TableauApiServiceException(msg, e);
+		}
+
+		String responseXML = response != null ? response.body() : null;
+
+		logger.debug("Response: \n" + responseXML);
+
+		if (response.statusCode() == 200)
+		{
+			logger.info("Successfully created an extract.");
+			return unmarshalResponse(responseXML).getJob();
+		} else
+		{
+			logger.error("Failed to sign out of Tableau Server");
+			return null;
+		}
+
+	}
+
 	private TsRequest createPayloadToPublishDataSource(String dataSourceName, String projectId)
 	{
 

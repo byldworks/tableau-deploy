@@ -107,6 +107,15 @@ public interface TableauApiService
 	public DataSourceType invokePublishDataSource(String siteId, String projectId, String dataSourceName, File dataSourceFile, boolean overwrite);
 
 	/**
+	 * Create an extract for a data source in a site.
+	 *
+	 * @param siteId
+	 * @param dataSourceId
+	 * @return
+	 */
+	public JobType invokeCreateExtract(String siteId, String dataSourceId);
+
+	/**
 	 * Returns the Tableau credentials object.
 	 *
 	 * @return
