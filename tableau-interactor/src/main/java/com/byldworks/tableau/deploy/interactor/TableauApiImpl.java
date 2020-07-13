@@ -316,12 +316,12 @@ public class TableauApiImpl implements TableauApiService
 	}
 
 	@Override
-	public WorkbookType invokePublishWorkbook(String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite)
+	public JobType invokePublishWorkbook(String siteId, String projectId, String workbookName, File workbookFile, boolean overwrite)
 	{
 
 		logger.info("Publishing workbook " + workbookName + " on site " + siteId);
 
-		String url = urlBase + "sites/" + siteId + "/workbooks?overwrite=" + overwrite;
+		String url = urlBase + "sites/" + siteId + "/workbooks?overwrite=" + overwrite + "&asJob=true";
 
 		ConnectionCredentialsType connCredentials = new ConnectionCredentialsType();
 		connCredentials.setName(key.username);
@@ -331,10 +331,10 @@ public class TableauApiImpl implements TableauApiService
 
 		TsResponse response = postMultiPart(url, tableauCredentials.getToken(), payload, workbookFile, "workbook");
 
-		if (response.getWorkbook() != null)
+		if (response.getJob() != null)
 		{
-			logger.info("Successfully published workbook");
-			return response.getWorkbook();
+			logger.info("Successfully created workbook publishing job: " + response.getJob().getId());
+			return response.getJob();
 		} else
 		{
 			logger.error("Failed to publish workbook.");
