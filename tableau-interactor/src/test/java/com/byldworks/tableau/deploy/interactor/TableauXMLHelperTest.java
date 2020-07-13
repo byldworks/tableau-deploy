@@ -21,6 +21,5 @@ public class TableauXMLHelperTest
 		Assertions.assertNotNull(helper);
 	}
 
-
 }
 

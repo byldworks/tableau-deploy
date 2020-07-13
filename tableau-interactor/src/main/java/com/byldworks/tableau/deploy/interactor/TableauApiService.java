@@ -13,104 +13,104 @@ import java.util.Map;
 public interface TableauApiService
 {
 
-    /**
-     * Returns an instance of the Tableau API matching the given credentials and content URL.
-     *
-     * @return
-     */
-    public static TableauApiService getInstance(String username, String password, String contentUrl, Map<String, String> envVariables)
-    {
-        return TableauApiImpl.getInstance(username, password, contentUrl, envVariables);
-    }
+	/**
+	 * Returns an instance of the Tableau API matching the given credentials and content URL.
+	 *
+	 * @return
+	 */
+	public static TableauApiService getInstance(String username, String password, String contentUrl, Map<String, String> envVariables)
+	{
+		return TableauApiImpl.getInstance(username, password, contentUrl, envVariables);
+	}
 
-    /**
-     * Method to sign out of Tableau Server.
-     *
-     */
-    public void invokeSignOut();
+	/**
+	 * Method to sign out of Tableau Server.
+	 */
+	public void invokeSignOut();
 
-    /**
-     * Method to get a list of sites on Tableau Server for which the user has access.
-     *
-     * @return
-     */
-    public SiteListType invokeQuerySites();
+	/**
+	 * Method to get a list of sites on Tableau Server for which the user has access.
+	 *
+	 * @return
+	 */
+	public SiteListType invokeQuerySites();
 
-    /**
-     * Method to get a list of projects in a given site for which the user has access.
-     *
-     * @param siteId
-     * @return
-     */
-    public ProjectListType invokeQueryProjects(String siteId);
+	/**
+	 * Method to get a list of projects in a given site for which the user has access.
+	 *
+	 * @param siteId
+	 * @return
+	 */
+	public ProjectListType invokeQueryProjects(String siteId);
 
-    /**
-     * Method to get a list of workbooks on a site for which the user has read access.
-     *
-     * @param siteId
-     * @param userId
-     * @return
-     */
-    public WorkbookListType invokeQueryWorkbooks(String siteId, String userId);
+	/**
+	 * Method to get a list of workbooks on a site for which the user has read access.
+	 *
+	 * @param siteId
+	 * @param userId
+	 * @return
+	 */
+	public WorkbookListType invokeQueryWorkbooks(String siteId, String userId);
 
-    /**
-     * Method to publish a workbook to the target site.
-     *
-     * @param siteId
-     * @param projectId
-     * @param workbookName
-     * @param workbookFile
-     * @param chunkedPublish
-     * @param overwrite
-     * @return
-     */
-    public WorkbookType invokePublishWorkbook(String siteId, String projectId, String workbookName, File workbookFile, boolean chunkedPublish, boolean overwrite);
+	/**
+	 * Method to publish a workbook to the target site.
+	 *
+	 * @param siteId
+	 * @param projectId
+	 * @param workbookName
+	 * @param workbookFile
+	 * @param chunkedPublish
+	 * @param overwrite
+	 * @return
+	 */
+	public WorkbookType invokePublishWorkbook(String siteId, String projectId, String workbookName, File workbookFile, boolean chunkedPublish, boolean overwrite);
 
-    /**
-     * Method to delete a workbook from Tableau Server.
-     *
-     * @param siteId
-     * @param projectId
-     * @param workbookId
-     */
-    public void invokeDeleteWorkbook(String siteId, String projectId, String workbookId);
+	/**
+	 * Method to delete a workbook from Tableau Server.
+	 *
+	 * @param siteId
+	 * @param projectId
+	 * @param workbookId
+	 */
+	public void invokeDeleteWorkbook(String siteId, String projectId, String workbookId);
 
-    /**
-     * Method to download a Tableau workbook from Tableau Server.
-     *
-     * @param siteId
-     * @param workbookId
-     * @param targetFileName
-     * @return
-     */
-    public File invokeDownloadWorkbook(String siteId, String workbookId, String targetFileName, boolean includeExtracts);
+	/**
+	 * Method to download a Tableau workbook from Tableau Server.
+	 *
+	 * @param siteId
+	 * @param workbookId
+	 * @param targetFileName
+	 * @return
+	 */
+	public File invokeDownloadWorkbook(String siteId, String workbookId, String targetFileName, boolean includeExtracts);
 
-    /**
-     * This method refreshes the specified workbook, with no need to associate the workbook refresh
-     * with a scheduled task. This method is the equivalent of selecting a workbook using the Tableau
-     * Server UI, and then selecting Refresh Extracts from the menu (also known as a "manual refresh").
-     *
-     * @param siteId
-     * @param workbookId
-     * @return
-     */
-    public JobType invokeUpdateWorkbookNow(String siteId, String workbookId);
+	/**
+	 * This method refreshes the specified workbook, with no need to associate the workbook refresh
+	 * with a scheduled task. This method is the equivalent of selecting a workbook using the Tableau
+	 * Server UI, and then selecting Refresh Extracts from the menu (also known as a "manual refresh").
+	 *
+	 * @param siteId
+	 * @param workbookId
+	 * @return
+	 */
+	public JobType invokeUpdateWorkbookNow(String siteId, String workbookId);
 
-    /**
-     * Publishes a data source on the specified site.
-     *
-     * @param siteId
-     * @param projectId
-     * @param dataSourceFile
-     * @param overwrite
-     * @return
-     */
-    public DataSourceType invokePublishDataSource(String siteId, String projectId, String dataSourceName, File dataSourceFile, boolean overwrite);
+	/**
+	 * Publishes a data source on the specified site.
+	 *
+	 * @param siteId
+	 * @param projectId
+	 * @param dataSourceFile
+	 * @param overwrite
+	 * @return
+	 */
+	public DataSourceType invokePublishDataSource(String siteId, String projectId, String dataSourceName, File dataSourceFile, boolean overwrite);
 
-    /**
-     * Returns the Tableau credentials object.
-     *
-     * @return
-     */
-    TableauCredentialsType getTableauCredentialsType();
+	/**
+	 * Returns the Tableau credentials object.
+	 *
+	 * @return
+	 */
+	TableauCredentialsType getTableauCredentialsType();
+
 }

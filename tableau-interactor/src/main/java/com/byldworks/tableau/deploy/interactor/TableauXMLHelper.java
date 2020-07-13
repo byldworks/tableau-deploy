@@ -1,6 +1,5 @@
 package com.byldworks.tableau.deploy.interactor;
 
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.w3c.dom.Document;
@@ -27,10 +26,9 @@ public class TableauXMLHelper
 		{
 			docFactory = DocumentBuilderFactory.newInstance();
 			builder = docFactory.newDocumentBuilder();
-		}
-		catch(Exception e)
+		} catch (Exception e)
 		{
-			throw new RuntimeException("Unable to create the document factories. Is there something wrong with your setup? " + e, e );
+			throw new RuntimeException("Unable to create the document factories. Is there something wrong with your setup? " + e, e);
 		}
 	}
 
@@ -46,22 +44,15 @@ public class TableauXMLHelper
 	{
 		this.tableauXML = tableauXML;
 
-		try(InputStream ins = Files.newInputStream(tableauXML))
+		try (InputStream ins = Files.newInputStream(tableauXML))
 		{
 			double start = System.nanoTime();
 			tableauDocument = builder.parse(ins);
-			logger.info("Successfully parsed - " + tableauXML + " - in " + ( (System.nanoTime() - start) /1_000_000.0 ) + " ms" );
-		}
-		catch(Exception e)
+			logger.info("Successfully parsed - " + tableauXML + " - in " + ((System.nanoTime() - start) / 1_000_000.0) + " ms");
+		} catch (Exception e)
 		{
 			throw new TableauApiServiceException("Unable to parse the file : " + tableauXML + " | " + e, e);
 		}
-
 	}
-
-
-
-
-
 
 }
