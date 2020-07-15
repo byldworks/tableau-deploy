@@ -518,7 +518,7 @@ public class TableauApiImpl implements TableauApiService
 
 		TsRequest payload = createPayloadToScheduleWorkbookRefresh(workbookId);
 
-		TsResponse response = post(url, tableauCredentials.getToken(), payload);
+		TsResponse response = put(url, tableauCredentials.getToken(), payload);
 
 		if (response.getTask() != null)
 		{
@@ -657,6 +657,47 @@ public class TableauApiImpl implements TableauApiService
 
 		HttpClient client = HttpClient.newHttpClient();
 		HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header(TABLEAU_AUTH_HEADER, authToken).POST(HttpRequest.BodyPublishers.ofString(payload)).build();
+
+		HttpResponse<String> response = null;
+		try
+		{
+			response = client.send(request, HttpResponse.BodyHandlers.ofString());
+		} catch (IOException | InterruptedException e)
+		{
+			String msg = "Unable to invoke Tableau - " + url + " - got : " + e;
+			throw new TableauApiServiceException(msg, e);
+		}
+
+		String responseXML = response != null ? response.body() : null;
+
+		logger.debug("Response: \n" + responseXML);
+
+		return unmarshalResponse(responseXML);
+
+	}
+
+	private TsResponse put(String url, String authToken, TsRequest requestPayload)
+	{
+
+		StringWriter writer = new StringWriter();
+
+		if (requestPayload != null)
+		{
+			try
+			{
+				s_jaxbMarshaller.marshal(requestPayload, writer);
+			} catch (JAXBException ex)
+			{
+				logger.error("There was a problem marshalling the payload: " + ex);
+			}
+		}
+
+		String payload = writer.toString();
+
+		logger.debug("Input payload is: \n" + payload);
+
+		HttpClient client = HttpClient.newHttpClient();
+		HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).header(TABLEAU_AUTH_HEADER, authToken).PUT(HttpRequest.BodyPublishers.ofString(payload)).build();
 
 		HttpResponse<String> response = null;
 		try
