@@ -124,6 +124,24 @@ public interface TableauApiService
 	public JobType invokeQueryJob(String siteId, String jobId);
 
 	/**
+	 * Returns a list of flows, extract and subscription schedules.
+	 * For each schedule the API returns the name, frequency, priority and other information.
+	 *
+	 * @return
+	 */
+	public ScheduleListType invokeQuerySchedules();
+
+	/**
+	 * Adds a task to refresh a workbook to an existing schedule.
+	 *
+	 * @param siteId
+	 * @param scheduleId
+	 * @param workbookId
+	 * @return
+	 */
+	public TaskType invokeScheduleWorkbookRefresh(String siteId, String scheduleId, String workbookId);
+
+	/**
 	 * Returns the Tableau credentials object.
 	 *
 	 * @return

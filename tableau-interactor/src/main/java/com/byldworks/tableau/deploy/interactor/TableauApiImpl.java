@@ -486,6 +486,68 @@ public class TableauApiImpl implements TableauApiService
 
 	}
 
+	@Override
+	public ScheduleListType invokeQuerySchedules()
+	{
+
+		logger.info("Querying schedules");
+
+		String url = urlBase + "schedules";
+
+		TsResponse response = get(url, tableauCredentials.getToken());
+
+		if (response.getSchedules() != null)
+		{
+			return response.getSchedules();
+		} else
+		{
+			logger.error("There was a problem getting schedules.");
+		}
+
+		return null;
+
+	}
+
+	@Override
+	public TaskType invokeScheduleWorkbookRefresh(String siteId, String scheduleId, String workbookId)
+	{
+
+		logger.info("About to add refresh task for workbook " + workbookId + " to schedule " + scheduleId);
+
+		String url = urlBase + "sites/" + siteId + "/schedules/" + scheduleId + "/workbooks";
+
+		TsRequest payload = createPayloadToScheduleWorkbookRefresh(workbookId);
+
+		TsResponse response = post(url, tableauCredentials.getToken(), payload);
+
+		if (response.getTask() != null)
+		{
+			logger.info("Successfully added workbook refresh task to schedule");
+			return response.getTask();
+		} else
+		{
+			logger.error("Failed to add workbook refresh task to schedule");
+		}
+
+		throw new TableauApiServiceException("Invoked - " + url + " - but did not get back anything from response.getTask()  - hence failing");
+
+
+	}
+
+	private TsRequest createPayloadToScheduleWorkbookRefresh(String workbookId)
+	{
+		TsRequest requestPayload = m_objectFactory.createTsRequest();
+		TaskType task = m_objectFactory.createTaskType();
+		TaskExtractRefreshType taskExtractRefresh = m_objectFactory.createTaskExtractRefreshType();
+		WorkbookType workbook = m_objectFactory.createWorkbookType();
+		workbook.setId(workbookId);
+		taskExtractRefresh.setWorkbook(workbook);
+		task.setExtractRefresh(taskExtractRefresh);
+		requestPayload.setTask(task);
+		return requestPayload;
+
+	}
+
 	private TsRequest createPayloadToPublishDataSource(String dataSourceName, String projectId)
 	{
 
