@@ -137,9 +137,10 @@ public interface TableauApiService
 	 * @param siteId
 	 * @param scheduleId
 	 * @param workbookId
+	 * @param incrementalRefresh
 	 * @return
 	 */
-	public TaskType invokeScheduleWorkbookRefresh(String siteId, String scheduleId, String workbookId);
+	public TaskType invokeScheduleWorkbookRefresh(String siteId, String scheduleId, String workbookId, Boolean incrementalRefresh);
 
 	/**
 	 * Returns the Tableau credentials object.

@@ -509,14 +509,14 @@ public class TableauApiImpl implements TableauApiService
 	}
 
 	@Override
-	public TaskType invokeScheduleWorkbookRefresh(String siteId, String scheduleId, String workbookId)
+	public TaskType invokeScheduleWorkbookRefresh(String siteId, String scheduleId, String workbookId, Boolean incrementalRefresh)
 	{
 
 		logger.info("About to add refresh task for workbook " + workbookId + " to schedule " + scheduleId);
 
 		String url = urlBase + "sites/" + siteId + "/schedules/" + scheduleId + "/workbooks";
 
-		TsRequest payload = createPayloadToScheduleWorkbookRefresh(workbookId);
+		TsRequest payload = createPayloadToScheduleWorkbookRefresh(workbookId, incrementalRefresh);
 
 		TsResponse response = put(url, tableauCredentials.getToken(), payload);
 
@@ -534,7 +534,7 @@ public class TableauApiImpl implements TableauApiService
 
 	}
 
-	private TsRequest createPayloadToScheduleWorkbookRefresh(String workbookId)
+	private TsRequest createPayloadToScheduleWorkbookRefresh(String workbookId, Boolean incrementalRefresh)
 	{
 		TsRequest requestPayload = m_objectFactory.createTsRequest();
 		TaskType task = m_objectFactory.createTaskType();
@@ -542,6 +542,7 @@ public class TableauApiImpl implements TableauApiService
 		WorkbookType workbook = m_objectFactory.createWorkbookType();
 		workbook.setId(workbookId);
 		taskExtractRefresh.setWorkbook(workbook);
+		taskExtractRefresh.setIncremental(incrementalRefresh);
 		task.setExtractRefresh(taskExtractRefresh);
 		requestPayload.setTask(task);
 		return requestPayload;
