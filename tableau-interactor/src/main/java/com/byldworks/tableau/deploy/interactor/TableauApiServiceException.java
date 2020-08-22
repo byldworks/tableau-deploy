@@ -21,4 +21,5 @@ public class TableauApiServiceException extends RuntimeException
 	{
 		super(cause);
 	}
+
 }
