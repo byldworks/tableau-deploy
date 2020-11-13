@@ -14,6 +14,8 @@ Adding Tableau to your CI/CD pipeline comes with a number of unexpected surprise
 * Ensure you force UTF-8 encoding everywhere when dealing with the XML file. Mistakes can creep in if you work on both Windows and Linux. Some versions of these will have default character sets not supported by Tableau. Using UTF-8 is always the safest.
 
 * You may find that setting refresh schedules on your workbook through the API might inexplicably fail. This is because there is a required ordering to how `datasource` children elements should appear in the `datasources`parent. You *must* ensure that all `datasource` children elements with a `refresh` sub-child with an `incremental-updates` attribute of `true` must be last in that child list.
+
+* The latest version of Tableau (2020) converts full text values to CDATA XML entries rather than escaping the individual characters. This can cause problems if your XML parsing tool adds a new line in front of the CDATA tag. This causes issues with Tableau formatting. 
  
 ## Phased Deployment Workflow
 
